@@ -538,6 +538,8 @@ int sort_scene_based_on_year_doy
     int year, doy;
     int *yeardoy;
     char temp_string[8];
+    char temp_string2[5];
+    char temp_string3[4];
     char errmsg[MAX_STR_LEN];
     char FUNC_NAME[] = "sort_scene_based_on_year_doy"; /* function name */
 
@@ -553,10 +555,10 @@ int sort_scene_based_on_year_doy
     {
         strncpy(temp_string, scene_list[i]+9, 7);
         yeardoy[i] = atoi(temp_string);
-        strncpy(temp_string, scene_list[i]+9, 4);
-        year = atoi(temp_string);
-        strncpy(temp_string, scene_list[i]+13, 3);
-        doy = atoi(temp_string);
+        strncpy(temp_string2, scene_list[i]+9, 4);
+        year = atoi(temp_string2);
+        strncpy(temp_string3, scene_list[i]+13, 3);
+        doy = atoi(temp_string3);
         status = convert_year_doy_to_jday_from_0000(year, doy, &sdate[i]);
         if (status != SUCCESS)
         {
@@ -1766,3 +1768,24 @@ int auto_ts_fit
     return SUCCESS;
 }
 
+#if 0
+char *sub_string
+(
+    const char *source,
+    size_t start,
+    size_t length
+) 
+{
+    int i;
+    char *target;
+
+    target = malloc(length*sizeof(char));
+
+    for(i = 0; i != length; ++i) 
+    {
+        target[i] = source[start + i];
+    }
+    target[i] = 0;
+    return target;
+}
+#endif

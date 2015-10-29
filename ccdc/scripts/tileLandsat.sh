@@ -85,14 +85,15 @@ cd $in
 #just zz scenes
 #for sceneID in `ls -1 LE7046027*.gz|sort -n --key=1.10,1.16`
 #production
-for sceneID in `ls -1 *.gz|sort -n --key=1.10,1.16`
+#for sceneID in `ls -1 *.gz|sort -n --key=1.10,1.16`
 #testing
 #for sceneID in `ls -1 LT4*.gz|sort -n --key=1.10,1.16`
 #for sceneID in `ls -1 LT5*.gz|sort -n --key=1.10,1.16`
 #for sceneID in `ls -1 LE7*.gz|sort -n --key=1.10,1.16`
 #for sceneID in `ls -1 LC8*.gz|sort -n --key=1.10,1.16`
-#for sceneID in LT50450281996227
-#for sceneID in LT50450281996243
+#for sceneID in LT50450281996227 # test of zero valid pixels
+#for sceneID in LT50450281996243 # test of 100 pct cloud cover
+for sceneID in LT50450281995112 # test of valid scene
 
     do
 
@@ -127,52 +128,27 @@ for sceneID in `ls -1 *.gz|sort -n --key=1.10,1.16`
     ####################################################################
     #
     # If the scene is not at least 20% clear, skip.  Clear is defined
-    # as clear + water / total.  I used to call a perl tool used for
-    # fireMapping.sh, but changed it to be explicit here to be more
-    # understandable.  FYI, "clear" is a reserved word, hence "cleer".
+    # as clear + water / total.  Call a perl tool modified from 
+    # fireMapping.sh which calculated cloud cover, because we need
+    # clear.  FYI, "clear" is a reserved word, hence "cleer".
+    # Attempting to do floating point math in bash was causing some
+    # divide by zero errors because of rounding very small values
+    # (less than 0.01) to integer values.  cloudCover.pl also returns
+    # zero for scenes whose values are all fill, so zero valid pixels.
+    # (yes, I've found one.)
     #
     ####################################################################
 
-    #ccargs=`gdalinfo -hist *cfmask.tif|tail -2|head -1|awk '{print $1 " " $2 " " $3 " " $4 " " $5}'`
-    #echo ccargs $ccargs
-    #cc=`cc.pl $ccargs`
-    #nonClearPct=`echo $cc | cut -d '.' -f 1`
-    ##cloudCoverPct=`cc.pl `gdalinfo -hist *cfmask.tif|tail -2|head -1|awk '{print $1 " " $2 " " $3 " " $4 " " $5}'``
-    #echo cc $cc nonClearPct $nonClearPct
+    ccargs=`gdalinfo -hist *cfmask.tif|tail -2|head -1|awk '{print $1 " " $2 " " $3 " " $4 " " $5}'`
+    echo ccargs $ccargs
+    pctClear=`cloudCover.pl $ccargs`
+    intPctClear=`echo $pctClear | cut -d '.' -f 1`
 
-    cleer=`gdalinfo  -hist *cfmask.tif|tail -2|head -1|awk '{print $1}'`
-    water=`gdalinfo  -hist *cfmask.tif|tail -2|head -1|awk '{print $2}'`
-    shadow=`gdalinfo -hist *cfmask.tif|tail -2|head -1|awk '{print $3}'`
-    snow=`gdalinfo   -hist *cfmask.tif|tail -2|head -1|awk '{print $4}'`
-    cloud=`gdalinfo  -hist *cfmask.tif|tail -2|head -1|awk '{print $5}'`
-    total=$[$cleer+$water+$shadow+$snow+$cloud]
-
-    ####################################################################
-    #
-    # For whatever reason, we have some scenes with zero valid pixels,
-    # which causes a divide by zero below.
-    #
-    ####################################################################
-
-    echo Total valid pixels in footprint: $total
-    valid=$[$total/250000]
-    echo Percent valid pixels in footprint: $valid
-    if [[ $total -eq 0 || $valid -eq 0 ]]; then
-        echo Zero total or valid pixels
-        echo ""
-        cd ..
-        rm -f -r $sceneID
-        cd $originalDir
-        continue
-    fi
-
-    tot=$[total/100]
-    clr=$[($cleer+$water)/$tot]
-    echo Percent clear pixels in total valid pixels: $clr
+    echo Percent clear pixels in total valid pixels: $intPctClear
     echo ""
 
-    if [ $clr -lt 20 ]; then
-        echo Percent clear pixels less than 20: $clr
+    if [ $intPctClear -lt 20 ]; then
+        echo Percent clear pixels less than 20: $intPctClear
         echo ""
         #rm -f *.tif *.xml *.txt
         cd ..

@@ -41,6 +41,26 @@ int cmpfunc (const void * a, const void * b)
    return ( *(float*)a - *(float*)b );
 }
 
+char *sub_string
+(
+    const char *source,
+    size_t start,
+    size_t length
+) 
+{
+    int i;
+    char *target;
+
+    target = malloc(length*sizeof(char));
+
+    for(i = 0; i != length; ++i) 
+    {
+        target[i] = source[start + i];
+    }
+    target[i] = 0;
+    return target;
+}
+
 /******************************************************************************
 METHOD:  ccdc
 
@@ -84,12 +104,12 @@ int main (int argc, char *argv[])
 {
     char FUNC_NAME[] = "main";
     char msg_str[MAX_STR_LEN];  /* input data scene name */
-    //    char filename[MAX_STR_LEN];         /* input binary filenames */
+    char filename[MAX_STR_LEN];         /* input binary filenames */
     int status;                 /* return value from function call */
     Output_t *rec_cg = NULL;    /* output structure and metadata */
     bool verbose;               /* verbose flag for printing messages */
     int i, k, m, b, k_new;
-    //    char **scene_list = NULL;
+    char **scene_list = NULL;
     FILE *fd;
     int num_scenes = MAX_SCENE_LIST;
     int num_c = 8;            /* max number of coefficients for the model */
@@ -103,7 +123,7 @@ int main (int argc, char *argv[])
     int *sdate;
     Input_meta_t *meta;
     int row, col;
-    //    int landsat_number;
+    int landsat_number;
     int fmask_sum = 0;
     int clr_sum = 0;
     int sn_sum = 0;
@@ -161,8 +181,6 @@ int main (int argc, char *argv[])
     int ini_conse;
     float vec_magg_min;
     int ids_len;
-    //    int clr_land_water_counter;
-    //    int fmask_total_counter;
 
     time_t now;
     time (&now);
@@ -179,7 +197,6 @@ int main (int argc, char *argv[])
 
     printf("row,col,verbose=%d,%d,%d\n",row,col,verbose);
 
-#if 0
     /* allocate memory for scene_list */
     scene_list = (char **) allocate_2d_array (MAX_SCENE_LIST, MAX_STR_LEN,
                                          sizeof (char));
@@ -213,9 +230,10 @@ int main (int argc, char *argv[])
             break;
     }
     num_scenes = i;
-#endif
 
+#if 0
     num_scenes = 455;
+#endif
     /* Allocate memory */
     sdate = malloc(num_scenes * sizeof(int));
     if (sdate == NULL)
@@ -327,15 +345,17 @@ int main (int argc, char *argv[])
     {
         RETURN_ERROR ("Allocating rec_v_dif memory",FUNC_NAME, FAILURE);
     }
-#if 0
+
     /* sort scene_list based on year & julian_day */
+    printf("num_scenes %d\n", num_scenes);
+    printf("scene_list[0]=%s\n", scene_list[0]);
     status = sort_scene_based_on_year_doy(scene_list, num_scenes, sdate);
     if (status != SUCCESS)
     {
         RETURN_ERROR ("Calling sort_scene_based_on_year_jday", 
                       FUNC_NAME, FAILURE);
     }
-#endif
+
     /* Create the Input metadata structure */
     meta = (Input_meta_t *)malloc(sizeof(Input_meta_t));
     if (meta == NULL) 
@@ -344,8 +364,8 @@ int main (int argc, char *argv[])
     }
 
     /* Get the metadata, all scene metadata are the same for stacked scenes */
-    //    status = read_envi_header(scene_list[0], meta);
-    status = read_envi_header("LC80460272013120LGN01_MTLstack", meta);
+    status = read_envi_header(scene_list[0], meta);
+    //status = read_envi_header("LC80460272013120LGN01_MTLstack", meta);
     if (status != SUCCESS)
     {
         RETURN_ERROR ("Calling read_envi_header", 
@@ -365,7 +385,7 @@ int main (int argc, char *argv[])
         printf ("DEBUG: Pixel size: %d\n", meta->pixel_size);
         printf ("DEBUG: Envi save format: %s\n", meta->interleave);
     }
-#if 0
+
     /* Open input files */
     FILE *fp_bin[num_scenes][TOTAL_BANDS];
     short int buf[num_scenes][TOTAL_IMAGE_BANDS];
@@ -417,32 +437,17 @@ int main (int argc, char *argv[])
             }
             close_raw_binary(fp_bin[i][k]);
         }
-
-	/* Eliminate scenes that have less than 20% clear-sky pixels */
-	clr_land_water_counter = 0;
-	fmask_total_counter = 0;
-	if (fmask_buf[i] == 0 || fmask_buf[i] == 1)
-	{
-            clr_land_water_counter++;
-	}
-	if (fmask_buf[i] > 0 && fmask_buf[i] < 255)
-	{
-	    fmask_total_counter++;
-	}
-
-	if (((float) clr_land_water_counter / (float)fmask_total_counter) < 0.2)
-	{
-            for (k = i; k < num_scenes; k++)
-	    {
-                strcpy(scene_list[k], scene_list[k+1]);
-	    }
-	    num_scenes--;
-	}
     }
-#endif
+
+	for (i = 0; i < num_scenes; i++)
+	{
+	  printf("i,sdate[i],buf[i][0],buf[i][1],buf[i][2],buf[i][3],buf[i][4],buf[i][5],buf[i][6],fmask_buf[i] = "
+                 "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", i,sdate[i],buf[i][0],buf[i][1],buf[i][2],buf[i][3],buf[i][4],buf[i][5],buf[i][6],fmask_buf[i]);
+	}
+#if 0
     /* Temporary code for testing purpose */
-    unsigned char fmask_buf[num_scenes];
-    int buf[num_scenes][TOTAL_BANDS + 1];
+    //unsigned char fmask_buf[num_scenes];
+    //int buf[num_scenes][TOTAL_BANDS + 1];
     fd = fopen("pixel_inputs.txt","r");
     if (fd == NULL)
         RETURN_ERROR ("Open input file", FUNC_NAME, FAILURE);
@@ -479,7 +484,7 @@ int main (int argc, char *argv[])
             }
         }
     }
-
+#endif
     /* Only run CCDC for places where more than 50% of images has data */
     for (i = 0; i < num_scenes; i++)
     { 
@@ -1857,7 +1862,7 @@ printf("m,vec_mag[conse-1]3=%d,%f\n",CONSE-1,vec_mag[CONSE-1]);
                 bl_ids[m] = 0;
 	    }
 
-	    //            get_ids_length(clrx, 0, num_scenes-1, &end);
+	                get_ids_length(clrx, 0, num_scenes-1, &end);
             printf("i_start,end=%d,%d\n",i_start,end);
             /* multitemporal cloud mask */
             status = auto_mask(clrx, clry, i_start-1, end-1,
@@ -2011,7 +2016,7 @@ printf("m,vec_mag[conse-1]3=%d,%f\n",CONSE-1,vec_mag[CONSE-1]);
         RETURN_ERROR ("Freeing memory: v_dif_mag\n", 
                    FUNC_NAME, FAILURE);
     }
-#if 0
+#if 1
     status = free_2d_array ((void **) scene_list);
     if (status != SUCCESS)
     {

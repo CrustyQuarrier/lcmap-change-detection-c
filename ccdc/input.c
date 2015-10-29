@@ -154,7 +154,8 @@ int read_envi_header
     char FUNC_NAME[] = "read_envi_header"; /* function name */
 
     //    sprintf(filename, "%s_sr_band1.hdr", scene_name);
-    sprintf(filename, "%s.hdr", scene_name);
+    sprintf(filename, "%s_sr_band1.hdr", scene_name);
+    printf("input file name: %s\n", filename);
 
     in=fopen(filename, "r");
     if (in == NULL)
