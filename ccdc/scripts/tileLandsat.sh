@@ -85,7 +85,7 @@ cd $in
 #just zz scenes
 #for sceneID in `ls -1 LE7046027*.gz|sort -n --key=1.10,1.16`
 #production
-#for sceneID in `ls -1 *.gz|sort -n --key=1.10,1.16`
+for sceneID in `ls -1 *.gz|sort -n --key=1.10,1.16`
 #testing
 #for sceneID in `ls -1 LT4*.gz|sort -n --key=1.10,1.16`
 #for sceneID in `ls -1 LT5*.gz|sort -n --key=1.10,1.16`
@@ -93,7 +93,7 @@ cd $in
 #for sceneID in `ls -1 LC8*.gz|sort -n --key=1.10,1.16`
 #for sceneID in LT50450281996227 # test of zero valid pixels
 #for sceneID in LT50450281996243 # test of 100 pct cloud cover
-for sceneID in LT50450281995112 # test of valid scene
+#for sceneID in LT50450281995112 # test of valid scene
 
     do
 
