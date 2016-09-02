@@ -1,7 +1,7 @@
 # Configuration
 SRC_DIR = .
 SCRIPTS = ./scripts
-BIN ?= ../bin
+BIN ?= /alt/local/run/contrib/ccdc
 XML2INC ?= /usr/include/libxml2/libxml
 ESPAINC ?=
 GSL_SCI_INC ?= /usr/include/gsl

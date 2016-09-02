@@ -10,7 +10,7 @@ make_arg=$1
 BIN=/alt/local/run/contrib/ccdc
 GSL_HOME=/alt/local/gsl/1.16.ccdc
 
-GSL_SCI_INC=$GSL_HOME/include GSL_SCI_LIB=$GSL_HOME/lib make $make_arg >& make.out
+CCDC_BIN=$BIN GSL_SCI_INC=$GSL_HOME/include GSL_SCI_LIB=$GSL_HOME/lib make $make_arg >& make.out
 
 more make.out
 
