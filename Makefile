@@ -4,7 +4,7 @@ all:
 
 ccdc:
 	cd ccdc && \
-	make && \
+	make.sh && \
 	make install
 
 classification:
@@ -13,7 +13,7 @@ classification:
 	make install
 
 clean:
-	cd ccdc && make clean
+	cd ccdc && make.sh clean
 	cd classification && make clean
 
 docker:
