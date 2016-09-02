@@ -34,6 +34,32 @@ For additional notes, such as installing dependencies (Ubuntu), overriding
 Ticket #5 has some early usability notes + tasks that we're trying to hit right
 away, if you're interested in tracking this.]
 
+In the meantime, run ccdc --help, or ccdc with no arguments to get the usage
+message.
+
+If using filesystem file inputs, the in-path argument is expected to point at
+Landsat ESPA-ordered gridded files of Analysis Ready Data (ARD).
+These ARD grids can be individual tif files per band (--data-type=tifs),
+or ENVI-format BIP stacked bands in one file (--data-type=bip).  In both
+cases, these are co-registered, radiometrically corrected files aligned
+and gridded (5,000 x 5,000 pixels, for example) to some defined user space.
+
+The ccdc algorithm assumes these filesystem inputs to be:
+  LC8
+    Surface Reflectance (SR) bands 2-7
+    Top Of Atmosphere (TOA) band 10 for Thermal band
+    cfmask band
+
+  LT4, LT5, LE7:
+    Surface Reflectance (SR) bands 1-5,7
+    Top Of Atmosphere (TOA) band 6 for Thermal band
+    cfmask band
+
+which are stacked in that order for bip input, or just referenced by file name
+tif input.
+
+
+
 
 ## Development
 
