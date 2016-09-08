@@ -60,7 +60,7 @@ and the following parameters are optional:
     --scene-list-file=: file name containing list of sceneIDs (default is all files in in-path)
     -verbose: should intermediate messages be printed? (default is false)
 
-ccdc --help will print the usage statement
+ccdc --help will print the usage message
 
 
 Example:
