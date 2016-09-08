@@ -4,8 +4,8 @@ all:
 
 ccdc:
 	cd ccdc && \
-	make && \
-	make install
+	make.sh && \
+	make.sh install
 
 classification:
 	cd classification && \

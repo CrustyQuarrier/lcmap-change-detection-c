@@ -3375,7 +3375,7 @@ usage ()
 {
     printf ("\n");
     printf ("Continuous Change Detection and Classification\n");
-    printf ("Version 05.02\n");
+    printf ("Version 05.04, topic/matlab-parity\n");
     printf ("\n");
     printf ("usage:\n");
     printf ("ccdc"
@@ -3385,7 +3385,7 @@ usage ()
             " --num-cols=<number of columns>"
             " [--in-path=<input directory>]"
             " [--out-path=<output directory>]"
-            " [--data-type=<tifs|bip]"
+            " [--data-type=tifs|bip]"
             " [--scene-list-file=<file with list of sceneIDs>]"
             " [--verbose]\n");
 
