@@ -19,7 +19,7 @@ typedef struct
     int t_end;             /* time when series model gets ended */
     int t_break;           /* time when the first break (change) is observed */
     //float coefs[NUM_BANDS][NUM_COEFFS];
-    float coefs[NUM_COEFFS][NUM_COEFFS];
+    float coefs[NUM_BANDS][NUM_COEFFS];
                            /*  coefficients for each time series model for each 
                                spectral band*/    
     float rmse[NUM_BANDS];

@@ -34,9 +34,9 @@
                             last step noise removal */
 #define CFMASK_CLEAR 0
 #define CFMASK_WATER 1
-#define CFMASK_CLOUD 2
+#define CFMASK_SHADOW 2
 #define CFMASK_SNOW 3
-#define CFMASK_SHADOW 4 
+#define CFMASK_CLOUD 4 
 #define CFMASK_FILL  255 
 #define IMAGE_FILL -9999
 
@@ -812,13 +812,13 @@ int main (int argc, char *argv[])
                 /* no break at the moment */
                 rec_cg[num_fc].t_break = 0; 
 		/* record position of pixel */
-		rec_cg[num_fc].pos = (row-1) * ncols + col + 1;
+		rec_cg[num_fc].pos = (row-1) * meta->samples + col + 1;
                 for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                 {
                     for (k = 0; k < MAX_NUM_C; k++)
 		    {
                         /* record fitted coefficients */
-                        rec_cg[num_fc].coefs[k][i_b] = fit_cft[i_b][k];
+                        rec_cg[num_fc].coefs[i_b][k] = fit_cft[i_b][k];//transposition
 		    }
                     /* record rmse of the pixel */
                     rec_cg[num_fc].rmse[i_b] = rmse[i_b]; 
@@ -939,7 +939,7 @@ int main (int argc, char *argv[])
 
                 /* NUM of Fitted Curves (num_fc) */
                 num_fc++;   
-		printf("    num_fc2 = %d\n",num_fc);   
+		printf("    num_fc2 = %d\n", num_fc);   
            	if (num_fc >= MAX_NUM_FC)
 	        {
                     /* Reallocate memory for rec_cg */ 
@@ -957,13 +957,13 @@ int main (int argc, char *argv[])
                 rec_cg[num_fc].t_end = clrx[end-1]; 
                 /* no break at the moment */
                 rec_cg[num_fc].t_break = 0; 
-		rec_cg[num_fc].pos = (row-1) * ncols + col + 1;
+		rec_cg[num_fc].pos = (row-1) * meta->samples + col + 1;
                 for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                 {
                     for (k = 0; k < MAX_NUM_C; k++)
 		    {
                         /* record fitted coefficients */
-                        rec_cg[num_fc].coefs[k][i_b] = fit_cft[i_b][k];
+                        rec_cg[num_fc].coefs[i_b][k] = fit_cft[i_b][k];//transposition
 		    }
                     /* record rmse of the pixel */
                     rec_cg[num_fc].rmse[i_b] = rmse[i_b]; 
@@ -1020,7 +1020,7 @@ int main (int argc, char *argv[])
 	    }
 
             for (k = 0; k < TOTAL_IMAGE_BANDS; k++)
-                printf("k,adj_rmse[k]=%d,%f\n",k,adj_rmse[k]);
+                printf("k, adj_rmse[k]=%d, %f\n", k, adj_rmse[k]);
 
             /* start with mininum requirement of clear obs */
             i = N_TIMES * MIN_NUM_C;
@@ -1034,7 +1034,7 @@ int main (int argc, char *argv[])
             /* NUM of Fitted Curves (num_fc) */
             num_fc++;
 
-	    printf("    num_fc3 = %d\n",num_fc);   
+	    printf("    num_fc3 = %d\n", num_fc);   
 
 	    if (num_fc >= MAX_NUM_FC)
 	    {
@@ -1395,13 +1395,13 @@ int main (int argc, char *argv[])
                             /* record time of curve end */
                             rec_cg[num_fc].t_end = clrx[i_start-2]; 
                 	    /* record position of pixel */
-		            rec_cg[num_fc].pos = (row-1) * ncols + col + 1;
+		            rec_cg[num_fc].pos = (row-1) * meta->samples + col + 1;
                             for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                             {
                                 for (k = 0; k < MIN_NUM_C; k++)
 			        {
                                     /* record fitted coefficients */
-                                    rec_cg[num_fc].coefs[k][i_b] = fit_cft[i_b][k]; 
+                                    rec_cg[num_fc].coefs[i_b][k] = fit_cft[i_b][k];//transposition
 	        	        }
                                 /* record rmse of the pixel */                         
                                 rec_cg[num_fc].rmse[i_b] = rmse[i_b]; 
@@ -1502,14 +1502,14 @@ int main (int argc, char *argv[])
                            /* no break at the moment */
                            rec_cg[num_fc].t_break = 0; 
 	 	           /* record position of pixel */
-		           rec_cg[num_fc].pos = (row-1) * ncols + col + 1;
+		           rec_cg[num_fc].pos = (row-1) * meta->samples + col + 1;
 
                            for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                            {
                                for (k = 0; k < MAX_NUM_C; k++)
 			       {
                                    /* record fitted coefficients */
-                                   rec_cg[num_fc].coefs[k][i_b] = fit_cft[i_b][k]; 
+                                   rec_cg[num_fc].coefs[i_b][k] = fit_cft[i_b][k];//transposition
 			       }
                                /* record rmse of the pixel */
                                rec_cg[num_fc].rmse[i_b] = rmse[i_b]; 
@@ -1592,7 +1592,7 @@ int main (int argc, char *argv[])
                                     for (k = 0; k < MAX_NUM_C; k++)
 			            {
                                         /* record fitted coefficients */
-                                        rec_cg[num_fc].coefs[k][i_b] = fit_cft[i_b][k];
+                                        rec_cg[num_fc].coefs[i_b][k] = fit_cft[i_b][k];//transposition
 				    } 
                                     /* record rmse of the pixel */
                                     rec_cg[num_fc].rmse[i_b] = rmse[i_b]; 
@@ -1815,8 +1815,8 @@ int main (int argc, char *argv[])
                         }
                         else
                         {
-                            quick_sort_float(v_dif_mag[i_b], id_last, CONSE-1);
-                            matlab_float_2d_partial_median(v_dif_mag, i_b, id_last, CONSE-1,
+                            quick_sort_float(v_dif_mag[i_b], id_last, CONSE - 1);
+                            matlab_float_2d_partial_median(v_dif_mag, i_b, id_last, CONSE - 1,
                                          &rec_cg[num_fc].magnitude[i_b]);
                         }
 		    }
@@ -1921,14 +1921,14 @@ int main (int argc, char *argv[])
                     /* record break time */
                     rec_cg[num_fc].t_break = 0;
 		    /* record position of pixel */
-		    rec_cg[num_fc].pos = (row-1) * ncols + col + 1;
+		    rec_cg[num_fc].pos = (row-1) * meta->samples + col + 1;
 
                     /* record fitted coefficients */
                     for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                     {
                         for (k = 0; k < MAX_NUM_C; k++)
 		        {
-                            rec_cg[num_fc].coefs[k][i_b] = fit_cft[i_b][k];
+                            rec_cg[num_fc].coefs[i_b][k] = fit_cft[i_b][k];//transposition
 	        	}
                         rec_cg[num_fc].rmse[i_b] = rmse[i_b];
                     }
@@ -1946,59 +1946,63 @@ int main (int argc, char *argv[])
 	        }
             }
         }
+    } // for ncols
     
-        /* Free memory allocation */
-        free(clrx);
-        free(rmse);
-        free(id_range);
-        free(id_clr);
-        free(id_all);
-        free(id_sn);
-        free(ids);
-        free(ids_old);
-        free(bl_ids);
-        free(rm_ids);
-        free(vec_mag);
-        free(sdate_pix);
-        free(fmask_pix_buf);
-        status = free_2d_array ((void **) pix_buf);
-        if (status != SUCCESS)
-        {
-            RETURN_ERROR ("Freeing memory: pix_buf\n", FUNC_NAME, FAILURE);
-        }
+    /* Free memory allocation */
+    free(clrx);
+    free(rmse);
+    free(id_range);
+    free(id_clr);
+    free(id_all);
+    free(id_sn);
+    free(ids);
+    free(ids_old);
+    free(bl_ids);
+    free(rm_ids);
+    free(vec_mag);
+    free(sdate_pix);
+    free(fmask_pix_buf);
 
-        status = free_2d_array ((void **) rec_v_dif);
-        if (status != SUCCESS)
-        {
-            RETURN_ERROR ("Freeing memory: rec_v_dif\n", FUNC_NAME, FAILURE);
-        }
-        status = free_2d_array ((void **) rec_v_dif_copy);
-        if (status != SUCCESS)
-        {
-            RETURN_ERROR ("Freeing memory: rec_v_dif_copy\n", FUNC_NAME, FAILURE);
-        }
-        status = free_2d_array ((void **) temp_v_dif);
-        if (status != SUCCESS)
-        {
-            RETURN_ERROR ("Freeing memory: temp_v_dif\n", FUNC_NAME, FAILURE);
-        }
-        status = free_2d_array ((void **) v_dif_mag);
-        if (status != SUCCESS)
-        {
-            RETURN_ERROR ("Freeing memory: v_dif_mag\n", FUNC_NAME, FAILURE);
-        }
+    status = free_2d_array ((void **) pix_buf);
+    if (status != SUCCESS)
+    {
+        RETURN_ERROR ("Freeing memory: pix_buf\n", FUNC_NAME, FAILURE);
+    }
 
-        status = free_2d_array ((void **) clry);
-        if (status != SUCCESS)
-        {
-            RETURN_ERROR ("Freeing memory: clry\n", FUNC_NAME, FAILURE);
-        }
+    status = free_2d_array ((void **) rec_v_dif);
+    if (status != SUCCESS)
+    {
+        RETURN_ERROR ("Freeing memory: rec_v_dif\n", FUNC_NAME, FAILURE);
+    }
 
-        status = free_2d_array ((void **) fit_cft);
-        if (status != SUCCESS)
-        {
-            RETURN_ERROR ("Freeing memory: fit_cft\n", FUNC_NAME, FAILURE);
-        }
+    status = free_2d_array ((void **) rec_v_dif_copy);
+    if (status != SUCCESS)
+    {
+        RETURN_ERROR ("Freeing memory: rec_v_dif_copy\n", FUNC_NAME, FAILURE);
+    }
+
+    status = free_2d_array ((void **) temp_v_dif);
+    if (status != SUCCESS)
+    {
+        RETURN_ERROR ("Freeing memory: temp_v_dif\n", FUNC_NAME, FAILURE);
+    }
+
+    status = free_2d_array ((void **) v_dif_mag);
+    if (status != SUCCESS)
+    {
+        RETURN_ERROR ("Freeing memory: v_dif_mag\n", FUNC_NAME, FAILURE);
+    }
+
+    status = free_2d_array ((void **) clry);
+    if (status != SUCCESS)
+    {
+        RETURN_ERROR ("Freeing memory: clry\n", FUNC_NAME, FAILURE);
+    }
+
+    status = free_2d_array ((void **) fit_cft);
+    if (status != SUCCESS)
+    {
+        RETURN_ERROR ("Freeing memory: fit_cft\n", FUNC_NAME, FAILURE);
     }
 
     mat_t *matfp;
@@ -2126,10 +2130,11 @@ int main (int argc, char *argv[])
             for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
             {
                 printf("rec_cg[%d].coefs[%d][0..7] = %f,%f,%f,%f,%f,%f,%f,%f\n", 
-		       i,i_b,k,rec_cg[i].coefs[i_b][0],i,i_b,k,rec_cg[i].coefs[1][i_b],
-		       rec_cg[i].coefs[2][i_b],i,i_b,k,rec_cg[i].coefs[3][i_b],
-		       rec_cg[i].coefs[4][i_b],i,i_b,k,rec_cg[i].coefs[5][i_b],
-		       rec_cg[i].coefs[6][i_b],i,i_b,k,rec_cg[i].coefs[7][i_b]); 
+		       i, i_b,
+                       rec_cg[i].coefs[0][i_b], i, i_b, rec_cg[i].coefs[i_b][1],
+		       rec_cg[i].coefs[2][i_b], i, i_b, rec_cg[i].coefs[3][i_b],
+		       rec_cg[i].coefs[4][i_b], i, i_b, rec_cg[i].coefs[5][i_b],
+		       rec_cg[i].coefs[6][i_b], i, i_b, rec_cg[i].coefs[7][i_b]); 
                 printf("rec_cg[%d].rmse[%d] = %f\n",i,i_b,rec_cg[i].rmse[i_b]);
                 printf("rec_cg[%d].magnitude[%d]=%f\n",i,i_b,rec_cg[i].magnitude[i_b]); 
             }

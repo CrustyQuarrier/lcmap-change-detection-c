@@ -13,22 +13,22 @@
 
 int get_args
 (
-    int argc,                 /* I: number of cmd-line args */
-    char *argv[],             /* I: string of cmd-line args */
-    int *row,                 /* O: row number for the pixel */
-    int *ncols,               /* O: number of pixels for the tile */
-    char *in_path,            /* O: directory locaiton for input data */
-    char *out_path,           /* O: directory location for output files */
-    char *scene_list_file,    /* O: opitonal file name of list of sceneIDs */
-    bool *verbose             /* O: verbose flag */
+    int argc,              /* I: number of cmd-line args                     */
+    char *argv[],          /* I: string of cmd-line args                     */
+    int *row,              /* O: row number for the pixel                    */
+    int *ncols,            /* O: number of pixels for the tile               */
+    char *in_path,         /* O: directory locaiton for input data           */
+    char *out_path,        /* O: directory location for output files         */
+    char *scene_list_file, /* O: opitonal file name of list of sceneIDs      */
+    bool *verbose          /* O: verbose flag                                */
 );
 
 void get_scenename
 (
-    const char *filename, /* I: Name of file to split */
-    char *directory,      /* O: Directory portion of file name */
+    const char *filename, /* I: Name of file to split               */
+    char *directory,      /* O: Directory portion of file name      */
     char *scene_name,     /* O: Scene name portion of the file name */
-    char *appendix        /* O: Appendix portion of the file name */
+    char *appendix        /* O: Appendix portion of the file name   */
 );
 
 int create_scene_list
