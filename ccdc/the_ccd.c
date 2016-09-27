@@ -262,23 +262,23 @@ int the_ccd
         else
             sn_pct = (float)sn_sum;
 
-        //if (verbose)
-        //{
-        //    printf("  Number inputs specified      = %d\n", all_sum);
+        if (verbose)
+        {
+            printf("  Number inputs specified      = %d\n", all_sum);
         //    printf("  Number of non-overlap pixels = %d\n", (all_sum - swath_overlap_count));
         //    printf("  Number of fill (255)  pixels = %d\n", fill_sum);
-        //    printf("  Number of non-fill    pixels = %d\n", all_sum);
-        //    printf("  Number of clear  (0)  pixels = %d\n", clr_sum);
-        //    printf("  Number of water  (1)  pixels = %d\n", water_sum);
+            printf("  Number of non-fill    pixels = %d\n", all_sum);
+            printf("  Number of clear  (0)  pixels = %d\n", clr_sum);
+            printf("  Number of water  (1)  pixels = %d\n", water_sum);
         //    printf("  Number of shadow (2)  pixels = %d\n", shadow_sum);
-        //    printf("  Number of snow   (3)  pixels = %d\n", sn_sum);
+            printf("  Number of snow   (3)  pixels = %d\n", sn_sum);
         //    printf("  Number of cloud  (4)  pixels = %d\n", cloud_sum);
-        //    printf("  Number of clear+water pixels = %d\n", clr_sum + water_sum);
-        //    printf("  Percent of clear pixels      = %f (of non-fill pixels)\n", clr_pct);
-        //    printf("  Percent of clear pixels      = %f (of non-fill, non-cloud, non-shadow pixels)\n",
-        //           (float) clr_sum / (float) (clr_sum + water_sum + sn_sum) * 100);
-        //    printf("  Percent of snow  pixels      = %f (of non-fill, non-cloud, non-shadow pixels)\n", (sn_pct * 100));
-        //}
+            printf("  Number of clear+water pixels = %d\n", clr_sum + water_sum);
+            printf("  Percent of clear pixels      = %f (of non-fill pixels)\n", clr_pct);
+            printf("  Percent of clear pixels      = %f (of non-fill, non-cloud, non-shadow pixels)\n",
+                   (float) clr_sum / (float) (clr_sum + water_sum + sn_sum) * 100);
+            printf("  Percent of snow  pixels      = %f (of non-fill, non-cloud, non-shadow pixels)\n", (sn_pct * 100));
+        }
 
         row_size = ncols * valid_num_scenes * TOTAL_IMAGE_BANDS;
         col_size =         valid_num_scenes * TOTAL_IMAGE_BANDS;
@@ -570,6 +570,30 @@ int the_ccd
                 if (verbose)
                     printf ("Fmask failed, clear pixel = %f\n", 100.0 * clr_pct); 
 
+                /**********************************************************/
+                /* allocate memory for cpx, cpy                           */
+                /**********************************************************/
+
+                cpx = malloc(end * sizeof(int));
+                if (cpx == NULL)
+                    RETURN_ERROR("ERROR allocating cpx memory", FUNC_NAME, FAILURE);
+
+                cpy = (float **) allocate_2d_array (TOTAL_IMAGE_BANDS, end,
+                             sizeof (float));
+                if (cpy == NULL)
+                {
+                    RETURN_ERROR ("Allocating cpy memory", FUNC_NAME, FAILURE);
+                }
+
+                for (i = 0; i < end; i++)
+                {
+                    cpx[i] = clrx[i];
+                    for (k = 0; k < TOTAL_IMAGE_BANDS; k++)
+                    {
+                        cpy[k][i] = clry[k][i];
+                    }
+                }
+
                 n_clr = 0;
                 float band2_median; // probably not good practice to declare here....
                 quick_sort_float(clry[1], 0, end - 1);
@@ -582,7 +606,7 @@ int the_ccd
                         clrx[n_clr] = clrx[i];
                         for (k = 0; k < TOTAL_IMAGE_BANDS; k++)
                         { 
-                            clry[k][n_clr] = clry[k+1][i]; 
+                            clry[k][n_clr] = clry[k][i]; 
                         }
                         n_clr++;
                     }
