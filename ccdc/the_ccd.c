@@ -341,9 +341,8 @@ int the_ccd
 
                 for (scene_inx = 0; scene_inx < valid_num_scenes; scene_inx++)
                 { 
-    	            if (((updated_fmask_buf[scene_inx] == CFMASK_SNOW) || 
-                         (updated_fmask_buf[scene_inx] < 2))           &&
-                          id_range[scene_inx] == 1)
+    	            if ((updated_fmask_buf[scene_inx] == CFMASK_SNOW) || 
+                         (updated_fmask_buf[scene_inx] < 2))
                     {
                         clrx[n_sn] = updated_sdate_array[scene_inx];
                         for (k = 0; k < TOTAL_IMAGE_BANDS; k++)
@@ -384,51 +383,73 @@ int the_ccd
 
                 /**********************************************************/
                 /*                                                        */
+                /* Allocate memory for cpx, cpy.                          */
+                /*                                                        */
+                /**********************************************************/
+
+                cpx = malloc(end * sizeof(int));
+                if (cpx == NULL)
+                    RETURN_ERROR("ERROR allocating cpx memory", FUNC_NAME, FAILURE);
+
+                cpy = (float **) allocate_2d_array (TOTAL_IMAGE_BANDS, end,
+                             sizeof (float));
+                if (cpy == NULL)
+                {
+                    RETURN_ERROR ("Allocating cpy memory", FUNC_NAME, FAILURE);
+                }
+
+
+                /**********************************************************/
+                /*                                                        */
                 /* Treat saturated and unsaturated pixels differently.    */
                 /*                                                        */
                 /**********************************************************/
 
-                for (k = 0; k < TOTAL_IMAGE_BANDS; k++)
+                for (b = 0; b < TOTAL_IMAGE_BANDS; b++)
                 {
                     i_span = 0;
-                    for (i = 0; i < end; i++)
+                    if (b != TOTAL_IMAGE_BANDS - 1) // for optical bands
                     {
-                        if (k != TOTAL_IMAGE_BANDS - 1) // for optical bands
+                        for (k = 0; k < end; k++)
                         {
-                            if (clry[i][k] > 0.0 && clry[i][k] < 10000.0)
+                            if (clry[b][k] > 0.0 && clry[b][k] < 10000.0)
                             {
-                                clrx[i_span] = clrx[i];
-                                clry[i_span][k] = clry[i][k];
+                                cpx[i_span] = clrx[k];
+                                clry[b][i_span] = clry[b][k];
                                 i_span++;
                             }
-
-                            if (i_span < MIN_NUM_C * N_TIMES)
-                                fit_cft[i][k] = 10000; // fixed value for saturated pixels
-                            else
-                            {
-                                status = auto_ts_fit(clrx, clry, k, 0, i_span-1, MIN_NUM_C, 
-                                         fit_cft, &rmse[k], temp_v_dif); 
-                                if (status != SUCCESS)  
-                                    RETURN_ERROR ("Calling auto_ts_fit1\n", 
-                                           FUNC_NAME, EXIT_FAILURE);
-
-                            } 
                         }
-                        else // for thermal band
+
+                        if (i_span < MIN_NUM_C * N_TIMES)
                         {
-                            if (clry[i][k] > -9300.0 && clry[i][k] < 7070.0)
-                            {
-                                clrx[i_span] = clrx[i];
-                                clry[i_span][k] = clry[i][k];
-                                i_span++;
-                            }
-                            
-                            status = auto_ts_fit(clrx, clry, k, 0, i_span-1, MIN_NUM_C, fit_cft, 
-                                     &rmse[k], temp_v_dif); 
+                            for (k = 0; k < MIN_NUM_C; k++)
+                                fit_cft[b][k] = 10000; // fixed value for saturated pixels
+                        }
+                        else
+                        {
+                            status = auto_ts_fit(cpx, cpy, b, 0, i_span - 1, MIN_NUM_C, 
+                                                 fit_cft, &rmse[b], temp_v_dif); 
                             if (status != SUCCESS)  
-                                RETURN_ERROR ("Calling auto_ts_fit2\n", 
-                                      FUNC_NAME, EXIT_FAILURE);
+                                RETURN_ERROR ("Calling auto_ts_fit1\n", FUNC_NAME, EXIT_FAILURE);
+
+                        } 
+                    } 
+                    else // for thermal band
+                    {
+                        for (k = 0; k < end; k++)
+                        {
+                            if (clry[b][k] > -9300.0 && clry[b][k] < 7070.0)
+                            {
+                                cpx[i_span] = clrx[k];
+                                cpy[b][i_span] = clry[b][k];
+                                i_span++;
+                            }
                         }
+                            
+                        status = auto_ts_fit(cpx, cpy, b, 0, i_span - 1, MIN_NUM_C, fit_cft, 
+                                     &rmse[b], temp_v_dif); 
+                        if (status != SUCCESS)  
+                            RETURN_ERROR ("Calling auto_ts_fit2\n", FUNC_NAME, EXIT_FAILURE);
                     }
                 }
 
@@ -461,8 +482,8 @@ int the_ccd
                 /*                                                        */
                 /**********************************************************/
 
-                rec_cg[*num_fc].t_start = clrx[i_start-1]; 
-                rec_cg[*num_fc].t_end = clrx[end-1]; 
+                rec_cg[*num_fc].t_start = clrx[i_start - 1]; 
+                rec_cg[*num_fc].t_end = clrx[end - 1]; 
 
                 /**********************************************************/
                 /*                                                        */
@@ -601,12 +622,12 @@ int the_ccd
 
                 for (i = 0; i < end; i++)
                 {
-                    if (clry[1][i] < (band2_median + 400.0))
+                    if (cpy[1][i] < (band2_median + 400.0))
                     {
-                        clrx[n_clr] = clrx[i];
+                        clrx[n_clr] = cpx[i];
                         for (k = 0; k < TOTAL_IMAGE_BANDS; k++)
                         { 
-                            clry[k][n_clr] = clry[k][i]; 
+                            clry[k][n_clr] = cpy[k][i]; 
                         }
                         n_clr++;
                     }
@@ -629,14 +650,27 @@ int the_ccd
                 {
                     for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                     {
-                        status = auto_ts_fit(clrx, clry, i_b, 0, end-1, MIN_NUM_C, 
-                                             fit_cft, &rmse[k], temp_v_dif); 
+                        status = auto_ts_fit(clrx, clry, i_b, 0, end - 1, MIN_NUM_C, 
+                                             fit_cft, &rmse[i_b], temp_v_dif); 
                         if (status != SUCCESS)
                         {  
                             RETURN_ERROR ("Calling auto_ts_fit for clear persistent pixels\n", 
                                           FUNC_NAME, FAILURE);
                         }
                     }
+                }
+
+                /******************************************************/
+                /*                                                    */
+                /* Free the memories */
+                /*                                                    */
+                /******************************************************/
+
+                free(cpx);
+                status = free_2d_array ((void **) cpy);
+                if (status != SUCCESS)
+                {
+                    RETURN_ERROR ("Freeing memory: cpy\n", FUNC_NAME, FAILURE);
                 }
 
                 /******************************************************/
@@ -668,8 +702,8 @@ int the_ccd
                 /*                                                        */
                 /**********************************************************/
 
-                rec_cg[*num_fc].t_start = clrx[i_start-1]; 
-                rec_cg[*num_fc].t_end = clrx[end-1]; 
+                rec_cg[*num_fc].t_start = clrx[i_start - 1]; 
+                rec_cg[*num_fc].t_end = clrx[end - 1]; 
 
                 /**********************************************************/
                 /*                                                        */
@@ -685,7 +719,7 @@ int the_ccd
                 /*                                                        */
                 /**********************************************************/
 
-                rec_cg[*num_fc].pos = (row-1) * num_samples + col_inx + 1; 
+                rec_cg[*num_fc].pos = (row - 1) * num_samples + col_inx + 1; 
 
                 for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                 {
@@ -776,7 +810,7 @@ int the_ccd
             {
                 adj_rmse[k] = 0.0;
             } 
-            status = median_variogram(clry, TOTAL_IMAGE_BANDS, 0, end-1, adj_rmse);
+            status = median_variogram(clry, TOTAL_IMAGE_BANDS, 0, end - 1, adj_rmse);
             if (status != SUCCESS)
             {
                 RETURN_ERROR("ERROR calling median_variogram routine", FUNC_NAME, 
@@ -882,7 +916,7 @@ int the_ccd
                 /* span of time (num of years)                            */
                 /*                                                        */
                 /**********************************************************/
-                time_span = (float)(clrx[i-1] - clrx[i_start-1]) / NUM_YEARS;
+                time_span = (float)(clrx[i - 1] - clrx[i_start - 1]) / NUM_YEARS;
 
                 /**********************************************************/
                 /*                                                        */
@@ -907,8 +941,8 @@ int the_ccd
                         /*                                                */
                         /**************************************************/
 
-                        status = auto_mask(clrx, clry, i_start-1, i+CONSE-1,
-                                           (float)(clrx[i+CONSE-1]-clrx[i_start-1]) / NUM_YEARS, 
+                        status = auto_mask(clrx, clry, i_start - 1, i + CONSE - 1,
+                                           (float)(clrx[i + CONSE - 1] - clrx[i_start - 1]) / NUM_YEARS, 
                                            adj_rmse[1], adj_rmse[4], T_CONST, bl_ids);
                         if (status != SUCCESS)
                         {
@@ -931,13 +965,13 @@ int the_ccd
                         /*                                                */
                         /**************************************************/
 
-                        for (k = i_start-1; k < i+CONSE; k++)
+                        for (k = i_start - 1; k < i + CONSE; k++)
                         {
-                            ids[k-i_start+1] = k;
+                            ids[k - i_start + 1] = k;
                         }
                         m = 0;
                         i_span = 0;
-                        for (k = 0; k < i-i_start+1; k++)
+                        for (k = 0; k < i - i_start + 1; k++)
                         {
                             if (bl_ids[k] == 1) 
                             {
@@ -1048,7 +1082,7 @@ int the_ccd
                             /*                                                */
                             /**************************************************/
 
-                            time_span=(cpx[i-1] - cpx[i_start-1]) / NUM_YEARS;
+                            time_span=(cpx[i - 1] - cpx[i_start - 1]) / NUM_YEARS;
 
                             /**************************************************/
                             /*                                                */
@@ -1072,7 +1106,7 @@ int the_ccd
                                 if (status != SUCCESS)
                                 {
                                       RETURN_ERROR ("Freeing memory: cpy\n", 
-                                            FUNC_NAME, FAILURE);
+                                                    FUNC_NAME, FAILURE);
                                 }
                                 continue;    /* not enough time */
                             }
@@ -1119,8 +1153,8 @@ int the_ccd
                                     /*                                        */
                                     /******************************************/
 
-                                    status = auto_ts_fit(clrx, clry, b, i_start-1, i-1, 
-                                             MIN_NUM_C, fit_cft, &rmse[b], rec_v_dif); 
+                                    status = auto_ts_fit(clrx, clry, b, i_start - 1, i - 1, 
+                                                         MIN_NUM_C, fit_cft, &rmse[b], rec_v_dif); 
                                     if (status != SUCCESS)  
                                     {
                                         RETURN_ERROR ("Calling auto_ts_fit during model initilization\n", 
@@ -1154,7 +1188,7 @@ int the_ccd
                                     /*                                        */
                                     /******************************************/
 
-                                    v_end[b] = rec_v_dif[lasso_blist[b]][i-i_start]
+                                    v_end[b] = rec_v_dif[lasso_blist[b]][i - i_start]
                                                             / mini_rmse;
 
                                     /******************************************/
@@ -1164,7 +1198,7 @@ int the_ccd
                                     /******************************************/
 
                                     v_slope[b] = fit_cft[lasso_blist[b]][1] *
-                                                    (clrx[i-1]-clrx[i_start-1])/mini_rmse;
+                                                    (clrx[i - 1] - clrx[i_start - 1]) / mini_rmse;
 
                                     /******************************************/
                                     /*                                        */
@@ -1251,7 +1285,7 @@ int the_ccd
 
                                         for (k = 0; k < end; k++) 
                                         {
-                                            if (clrx[k] >= rec_cg[*num_fc-1].t_break)
+                                            if (clrx[k] >= rec_cg[*num_fc - 1].t_break)
                                             {
                                                 i_break = k + 1;
                                                 break;
@@ -1268,7 +1302,7 @@ int the_ccd
                                         /*                                    */
                                         /**************************************/
 
-                                        for(i_ini = i_start-2; i_ini >= i_break-1; i_ini--)
+                                        for(i_ini = i_start - 2; i_ini >= i_break -1; i_ini--)
                                         {
                                             if ((i_start - i_break) < CONSE)
                                             {
@@ -1324,9 +1358,9 @@ int the_ccd
                                                     /*                        */
                                                     /**************************/
 
-                                                    auto_ts_predict(clrx, fit_cft, MIN_NUM_C, i_b, i_ini-i_conse,
-                                                                    i_ini-i_conse, &ts_pred_temp);
-                                                    v_dif_mag[i_b][i_conse] = (float)clry[i_b][i_ini-i_conse] - 
+                                                    auto_ts_predict(clrx, fit_cft, MIN_NUM_C, i_b, i_ini - i_conse,
+                                                                    i_ini - i_conse, &ts_pred_temp);
+                                                    v_dif_mag[i_b][i_conse] = (float)clry[i_b][i_ini - i_conse] - 
                                                                        ts_pred_temp;
 
                                                     /**************************/
@@ -1381,10 +1415,10 @@ int the_ccd
                                             {
                                                 for (k = i_ini; k < end - 1; k++)
                                                 {
-                                                    clrx[k] = clrx[k+1];
+                                                    clrx[k] = clrx[k + 1];
                                                     for (b = 0; b < TOTAL_IMAGE_BANDS; b++)
                                                     {
-                                                        clry[b][k] = clry[b][k+1];
+                                                        clry[b][k] = clry[b][k + 1];
                                                     }
                                                 }
                                                 i--;
@@ -1433,7 +1467,7 @@ int the_ccd
 
                                         for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                                         {
-                                            status = auto_ts_fit(clrx, clry, i_b, i_break-1, i_start-2, 
+                                            status = auto_ts_fit(clrx, clry, i_b, i_break - 1, i_start - 2, 
                                                      MIN_NUM_C, fit_cft, &rmse[i_b], temp_v_dif); 
                                             if (status != SUCCESS)
                                             {  
@@ -1449,8 +1483,8 @@ int the_ccd
                                         /*                                    */
                                         /**************************************/
 
-                                        rec_cg[*num_fc].t_end = clrx[i_start-2]; 
-                                        rec_cg[*num_fc].pos = (row-1) * num_samples + col_inx + 1; 
+                                        rec_cg[*num_fc].t_end = clrx[i_start - 2]; 
+                                        rec_cg[*num_fc].pos = (row - 1) * num_samples + col_inx + 1; 
 
                                         for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                                         {
@@ -1483,7 +1517,7 @@ int the_ccd
                                         /*                                    */
                                         /**************************************/
 
-                                        rec_cg[*num_fc].t_break = clrx[i_start -1];
+                                        rec_cg[*num_fc].t_break = clrx[i_start - 1];
                                         rec_cg[*num_fc].category = 10 + MIN_NUM_C;
                                         rec_cg[*num_fc].change_prob = 1.0;
                                         rec_cg[*num_fc].t_start = clrx[0];
@@ -1491,7 +1525,7 @@ int the_ccd
 
                                         for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                                         {
-                                            quick_sort_float(v_dif_mag[i_b], 0, ini_conse-1);
+                                            quick_sort_float(v_dif_mag[i_b], 0, ini_conse - 1);
                                             matlab_2d_float_median(v_dif_mag, i_b, ini_conse, 
                                                                   &v_dif_mean);
                                             rec_cg[*num_fc].magnitude[i_b] = -v_dif_mean; 
@@ -1566,9 +1600,9 @@ int the_ccd
                         /**************************************************/
 
                         ids_len = 0;
-                        for (k = i_start-1; k < i; k++)
+                        for (k = i_start - 1; k < i; k++)
                         {
-                            ids[k-i_start+1] = k;
+                            ids[k-i_start + 1] = k;
                             ids_len++;
                         }
                         i_span = i - i_start +1;
@@ -1597,11 +1631,11 @@ int the_ccd
                             /*                                            */
                             /**********************************************/
 
-                            i_count = clrx[i-1] - clrx[i_start-1];
+                            i_count = clrx[i - 1] - clrx[i_start - 1];
 
                             for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                             {
-                                status = auto_ts_fit(clrx, clry, i_b, i_start-1, i-1, update_num_c, 
+                                status = auto_ts_fit(clrx, clry, i_b, i_start - 1, i - 1, update_num_c, 
                                                      fit_cft, &rmse[i_b], rec_v_dif); 
                                 if (status != SUCCESS) 
                                 { 
@@ -1618,8 +1652,8 @@ int the_ccd
                             /*                                            */
                             /**********************************************/
 
-                            rec_cg[*num_fc].t_start = clrx[i_start-1]; 
-                            rec_cg[*num_fc].t_end = clrx[i-1]; 
+                            rec_cg[*num_fc].t_start = clrx[i_start - 1]; 
+                            rec_cg[*num_fc].t_end = clrx[i - 1]; 
 
                             /**********************************************/
                             /*                                            */
@@ -1635,7 +1669,7 @@ int the_ccd
                             /*                                            */
                             /**********************************************/
 
-                            rec_cg[*num_fc].pos = (row-1) * num_samples + col_inx + 1; // offsets
+                            rec_cg[*num_fc].pos = (row - 1) * num_samples + col_inx + 1; // offsets
 
                             for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                             {
@@ -1665,7 +1699,7 @@ int the_ccd
                             /**********************************************/
 
                             rec_cg[*num_fc].change_prob = 0.0; 
-                            rec_cg[*num_fc].num_obs = i-i_start+1; 
+                            rec_cg[*num_fc].num_obs = i - i_start + 1; 
                             rec_cg[*num_fc].category = 0 + update_num_c; 
 
                             for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
@@ -1696,9 +1730,9 @@ int the_ccd
                                     /*                                    */
                                     /**************************************/
 
-                                    auto_ts_predict(clrx, fit_cft, update_num_c, i_b, i+i_conse, i+i_conse, 
+                                    auto_ts_predict(clrx, fit_cft, update_num_c, i_b, i + i_conse, i + i_conse, 
                                                     &ts_pred_temp);
-                                    v_dif_mag[i_b][i_conse] = (float)clry[i_b][i+i_conse] - ts_pred_temp; 
+                                    v_dif_mag[i_b][i_conse] = (float)clry[i_b][i + i_conse] - ts_pred_temp; 
 
                                     /**************************************/
                                     /*                                    */
@@ -1751,7 +1785,7 @@ int the_ccd
                         }
                         else
                         {
-                            if ((float)(clrx[i-1] - clrx[i_start-1]) >= (1.33*(float)i_count))
+                            if ((float)(clrx[i - 1] - clrx[i_start - 1]) >= (1.33 * (float)i_count))
                             {
                                 /******************************************/
                                 /*                                        */
@@ -1759,11 +1793,11 @@ int the_ccd
                                 /*                                        */
                                 /******************************************/
 
-                                i_count = clrx[i-1] - clrx[i_start-1];
+                                i_count = clrx[i - 1] - clrx[i_start - 1];
 
                                 for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                                 {
-                                    status = auto_ts_fit(clrx, clry, i_b, i_start-1, i-1, update_num_c, 
+                                    status = auto_ts_fit(clrx, clry, i_b, i_start - 1, i - 1, update_num_c, 
                                                          fit_cft, &rmse[i_b], rec_v_dif); 
                                     if (status != SUCCESS)  
                                     {
@@ -1804,7 +1838,7 @@ int the_ccd
                                 /*                                        */
                                 /******************************************/
 
-                                rec_cg[*num_fc].num_obs = i-i_start+1; 
+                                rec_cg[*num_fc].num_obs = i - i_start + 1; 
                                 rec_cg[*num_fc].category = 0 + update_num_c; 
 
                                 /******************************************/
@@ -1838,7 +1872,7 @@ int the_ccd
                             /*                                            */
                             /**********************************************/
 
-                            rec_cg[*num_fc].t_end = clrx[i-1];
+                            rec_cg[*num_fc].t_end = clrx[i - 1];
 
                             /**********************************************/
                             /*                                            */
@@ -1870,7 +1904,7 @@ int the_ccd
  
                             for(m = 0; m < ids_old_len; m++)
                             {
-                                d_rt = clrx[ids_old[m]] - clrx[i+CONSE-1]; 
+                                d_rt = clrx[ids_old[m]] - clrx[i + CONSE - 1]; 
                                 d_yr[m] = fabs(round((float)d_rt / NUM_YEARS) * NUM_YEARS - (float)d_rt);
                             }
 
@@ -1886,7 +1920,7 @@ int the_ccd
                             /*                                            */
                             /**********************************************/
 
-                            quick_sort_2d_float(d_yr, rec_v_dif_copy, 0, ids_old_len-1);
+                            quick_sort_2d_float(d_yr, rec_v_dif_copy, 0, ids_old_len - 1);
                             for(b = 0; b < NUM_LASSO_BANDS; b++)
                                 tmpcg_rmse[b] = 0.0;
 
@@ -1916,20 +1950,20 @@ int the_ccd
                             /*                                            */
                             /**********************************************/
 
-                            for (m = 0; m < CONSE-1; m++)
+                            for (m = 0; m < CONSE - 1; m++)
                             {
-                                vec_mag[m] = vec_mag[m+1];
+                                vec_mag[m] = vec_mag[m + 1];
                                 for (b = 0; b < NUM_LASSO_BANDS; b++)
-                                    v_diff[b][m] = v_diff[b][m+1];
+                                    v_diff[b][m] = v_diff[b][m + 1];
                                 for (b = 0; b < TOTAL_IMAGE_BANDS; b++)
-                                    v_dif_mag[b][m] = v_dif_mag[b][m+1];
+                                    v_dif_mag[b][m] = v_dif_mag[b][m + 1];
                             }
 
                             for (b = 0; b < NUM_LASSO_BANDS; b++)
-                                v_diff[b][CONSE-1] = 0.0;
+                                v_diff[b][CONSE - 1] = 0.0;
                             for (b = 0; b < TOTAL_IMAGE_BANDS; b++)
-                                v_dif_mag[b][CONSE-1] = 0.0;
-                            vec_mag[CONSE-1] = 0.0;
+                                v_dif_mag[b][CONSE - 1] = 0.0;
+                            vec_mag[CONSE - 1] = 0.0;
 
                             for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                             {
@@ -1939,9 +1973,9 @@ int the_ccd
                                 /*                                        */
                                 /******************************************/
 
-                                auto_ts_predict(clrx, fit_cft, update_num_c, i_b, i+CONSE-1, 
-                                                i+CONSE-1, &ts_pred_temp);
-                                v_dif_mag[i_b][CONSE-1] = clry[i_b][i+CONSE-1] - ts_pred_temp;
+                                auto_ts_predict(clrx, fit_cft, update_num_c, i_b, i + CONSE - 1, 
+                                                i + CONSE - 1, &ts_pred_temp);
+                                v_dif_mag[i_b][CONSE - 1] = clry[i_b][i + CONSE - 1] - ts_pred_temp;
 
                                 /******************************************/
                                 /*                                        */
@@ -1965,8 +1999,8 @@ int the_ccd
                                         /*                                */
                                         /**********************************/
 
-                                        v_diff[b][CONSE-1] = v_dif_mag[i_b][CONSE-1] / mini_rmse;
-                                        vec_mag[CONSE-1] += v_diff[b][CONSE-1] * v_diff[b][CONSE-1]; 
+                                        v_diff[b][CONSE - 1] = v_dif_mag[i_b][CONSE - 1] / mini_rmse;
+                                        vec_mag[CONSE - 1] += v_diff[b][CONSE - 1] * v_diff[b][CONSE - 1]; 
                                     }         
                                 }
                             }
@@ -2000,7 +2034,7 @@ int the_ccd
 
                             for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                             {
-                                quick_sort_float(v_dif_mag[i_b], 0, CONSE-1);
+                                quick_sort_float(v_dif_mag[i_b], 0, CONSE - 1);
                                 matlab_2d_float_median(v_dif_mag, i_b, CONSE,
                                                        &rec_cg[*num_fc].magnitude[i_b]);
                             }
@@ -2056,9 +2090,9 @@ int the_ccd
 
                             for (m = i; m < end -1; m++)
                             {
-                                clrx[m] = clrx[m+1];
+                                clrx[m] = clrx[m + 1];
                                 for (b = 0; b < TOTAL_IMAGE_BANDS; b++)
-                                    clry[b][m] = clry[b][m+1];
+                                    clry[b][m] = clry[b][m + 1];
                             }
                             end--; /* check if this is needed */
 
@@ -2137,7 +2171,7 @@ int the_ccd
                     /*                                                    */
                     /******************************************************/
 
-                    rec_cg[*num_fc].t_break = clrx[end-CONSE+id_last+1];
+                    rec_cg[*num_fc].t_break = clrx[end-CONSE + id_last + 1];
 
                     /******************************************************/
                     /*                                                    */
@@ -2147,9 +2181,16 @@ int the_ccd
 
                     for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                     {
-                        quick_sort_float(v_dif_mag[i_b], id_last, CONSE-2);
-                        matlab_float_2d_partial_median(v_dif_mag, i_b, id_last, CONSE-1,
-                                                       &rec_cg[*num_fc].magnitude[i_b]);
+                        if (id_last == CONSE - 1)
+                        {
+                            rec_cg[*num_fc].magnitude[i_b] = v_dif_mag[i_b][id_last];
+                        }
+                        else
+                        {
+                            quick_sort_float(v_dif_mag[i_b], id_last, CONSE - 1);
+                            matlab_float_2d_partial_median(v_dif_mag, i_b, id_last, CONSE - 1,
+                                                           &rec_cg[*num_fc].magnitude[i_b]);
+                        }
                     }
                 }
             }
@@ -2179,7 +2220,7 @@ int the_ccd
                 {
                     for (k = 0; k < valid_num_scenes; k++) 
                     {
-                        if (clrx[k] >= rec_cg[*num_fc-1].t_break)
+                        if (clrx[k] >= rec_cg[*num_fc - 1].t_break)
                         {
                             i_start = k + 1;
 			    break;
@@ -2200,8 +2241,8 @@ int the_ccd
                     /*                                                    */
                     /******************************************************/
 
-                    status = auto_mask(clrx, clry, i_start-1, end-1,
-                                       (float)(clrx[end-1]-clrx[i_start-1]) / NUM_YEARS, 
+                    status = auto_mask(clrx, clry, i_start - 1, end - 1,
+                                       (float)(clrx[end - 1] - clrx[i_start - 1]) / NUM_YEARS, 
                                        adj_rmse[1], adj_rmse[4], T_CONST, bl_ids);
                     if (status != SUCCESS)
                         RETURN_ERROR("ERROR calling auto_mask at the end of time series", 
@@ -2213,7 +2254,7 @@ int the_ccd
                     /*                                                    */
                     /******************************************************/
 
-                    for (m = 0; m < valid_num_scenes-1; m++)
+                    for (m = 0; m < valid_num_scenes - 1; m++)
                     {
                         ids[m] = 0;
                     }
@@ -2224,9 +2265,9 @@ int the_ccd
                     /*                                                    */
                     /******************************************************/
 
-                    for (k = i_start-1; k < end; k++)
+                    for (k = i_start - 1; k < end; k++)
                     {
-                        ids[k-i_start+1] = k;
+                        ids[k- i_start + 1] = k;
                     }
                     m= 0;
                     i_span = 0;
@@ -2249,7 +2290,7 @@ int the_ccd
                     /******************************************************/
 
                     m = 0;
-                    for (k = 0, k_new=0; k < end-i_start+1; k++)
+                    for (k = 0, k_new=0; k < end - i_start + 1; k++)
                     {
                         if (m < rm_ids_len && k == rm_ids[m])
                         {
@@ -2268,7 +2309,7 @@ int the_ccd
                 {
                     for (i_b = 0; i_b < TOTAL_IMAGE_BANDS; i_b++)
                     {
-                        status = auto_ts_fit(clrx, clry, i_b, i_start-1, end-1, MIN_NUM_C, 
+                        status = auto_ts_fit(clrx, clry, i_b, i_start - 1, end - 1, MIN_NUM_C, 
                                              fit_cft, &rmse[i_b], temp_v_dif); 
                         if (status != SUCCESS)  
                         {
@@ -2284,10 +2325,10 @@ int the_ccd
                     /*                                                    */
                     /******************************************************/
 
-                    rec_cg[*num_fc].t_start = clrx[i_start-1];
-                    rec_cg[*num_fc].t_end = clrx[end-1];
+                    rec_cg[*num_fc].t_start = clrx[i_start - 1];
+                    rec_cg[*num_fc].t_end = clrx[end - 1];
                     rec_cg[*num_fc].t_break = 0;
-                    rec_cg[*num_fc].pos = (row-1) * num_samples + col_inx + 1; // offsets
+                    rec_cg[*num_fc].pos = (row - 1) * num_samples + col_inx + 1; // offsets
 
                     /******************************************************/
                     /*                                                    */

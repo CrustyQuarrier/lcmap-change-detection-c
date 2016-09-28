@@ -1,3 +1,8 @@
+int the_dummy_ccd
+(
+    int *int_ptr                     /* integer pointer                       */
+);
+
 int the_ccd
 (
     int valid_num_scenes,            /* Number of scenes after fmask filtering*/

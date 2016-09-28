@@ -320,6 +320,7 @@ int read_stdin
     bool end_of_file = 0;               /* To identify end of stdin.          */
     int i, j;                           /* loop counters.                     */
     int status;                         /* function return status.            */
+    int offset;                         /* number of bytes into image buf     */
 
     /**************************************************************/
     /*                                                            */
@@ -361,7 +362,10 @@ int read_stdin
 
         for (j = 0; j < num_bands; j++)
         {
-            scanf("%d", &buf[i + j]);  // offsets 
+            //scanf("%d", &buf[i + j]);  // offsets 
+            //scanf("%d", &buf[i + j]);  // offsets 
+            offset = (i * TOTAL_IMAGE_BANDS) + j;
+            scanf("%d", &buf[offset]);  // offsets 
             if (debug)
                 //printf( "You entered: %d\n", buf[j][i]);
                 printf( "You entered: %d\n", buf[i + j]);  // offsets 

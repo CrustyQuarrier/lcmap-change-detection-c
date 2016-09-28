@@ -738,7 +738,8 @@ int main (int argc, char *argv[])
     /*                                                            */
     /**************************************************************/
 
-    status = the_ccd (valid_num_scenes, row, col, nrows, ncols, meta->samples,
+    //status = the_ccd (valid_num_scenes, row, col, nrows, ncols, meta->samples,
+    status = the_ccd (valid_num_scenes, row, col, nrows, ncols, 1,
                       updated_sdate_array, updated_fmask_buf, buf,
                       clr_sum, sn_sum, water_sum, all_sum, verbose,
                       rec_cg, &num_fc);
