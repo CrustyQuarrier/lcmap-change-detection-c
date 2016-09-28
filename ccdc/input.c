@@ -400,7 +400,7 @@ int read_stdin
         }
 
         i++;
-        (*all_sum)++;
+        //(*all_sum)++; // the assing values calls also increments total
     }
 
     *valid_num_scenes = i;
